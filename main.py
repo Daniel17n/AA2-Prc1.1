@@ -5,6 +5,7 @@ import cv2
 import sklearn.model_selection
 import matplotlib.pyplot as plt
 import torch
+from torch import nn
 from IPython.display import display, HTML
 
 N = 16
@@ -109,12 +110,82 @@ plt.savefig("test.png", bbox_inches='tight')
 #
 #   - Output layer      (linear activation)
 
-class ConvolutionalNN (nn.Module):
-    def __init__(self, ni, nh, no):
-        super.__init__()
+class ConvolutionalNN(nn.Module):
+    def __init__(self, nh, no):
+        super().__init__()
+
         self.layers = nn.Sequential(
-            nn.Linear(ni, nh),
-            nn.Conv2d(1,1)
-            nn.Linear(nh, no)
+            # Bloque 1
+            nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            # Bloque 2
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            # Bloque 3
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            # Bloque 4
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            # Bloque 5
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            nn.Flatten()
         )
 
+        # Capa densa (fully connected)
+        self.fc = nn.Sequential(
+            nn.Linear(64 * (2**nh) * (2**nh), 256),
+            nn.ReLU(),
+            nn.Linear(256, no)
+        )
+
+    def forward(self, x):
+        x = self.layers(x)
+        x = self.fc(x)
+        return x
+
+# Prueba con una imagen de 64x64
+model = ConvolutionalNN(nh=1, no=10)
+x = torch.randn(1, 3, 64, 64)  
+output = model(x)
+print(output.shape)  # Debe ser [1, 10]

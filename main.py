@@ -1,3 +1,4 @@
+import math
 import os
 import pandas as pd
 import numpy as np
@@ -11,14 +12,14 @@ from IPython.display import display, HTML
 N = 16
 
 def set_device ():
-    if torch.backends.mps.is_available(): # para usar con mac silicon
+    if torch.backends.mps.is_available():
         device = "mps"
     elif torch.cuda.is_available():
         device = "cuda"
     else:
         device = "cpu"
     torch.set_default_device(device)
-    print(f"Using {torch.device(device)} device")
+    print(f"\nUsing {torch.device(device)} device")
     return torch.device(device)
 
 def load_samples (directory, size=None):
@@ -29,7 +30,7 @@ def load_samples (directory, size=None):
     X = []
     Y = []
     for i in range(len(data)):
-        print('.', end='')
+        # print('.', end='')
         # carga la imagen
         imgname = data.iloc[i,0]
         img = cv2.imread(imgname)
@@ -44,25 +45,22 @@ display(HTML("<style>.container { width:100% !important; }</style>"))
 
 X, Y = load_samples("dataset_cleaned.csv",(64,64)) # for model that require higher than 64x64 resolution
 
+print("\nX shape: ")
 print(X.shape)
+print("\nY shape: ")
 print(Y.shape)
 
 # get train and test sets
 X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size=0.10, random_state=42) # this random_state is similar to the bootstrap results
 
-# imprime algunos ejemplos
-fig, axs = plt.subplots(N//4,4,figsize=(10, 10*N//16))
-axs = axs.flatten()
-plt.axis('off')
+# convertir tensores numpy a pytorch: torch.from_numpy()
+# convertir datos torch a numpy: X.cpu().numpy()
+# enviar datos a la GPU: X.to(device)
 
-im0 = 567
-for i in range(N):
-    axs[i].axis('off')
-    axs[i].imshow(X[im0+i])
-    #axs[i].title.set_text(f"$angle$ = {(Y[im0+i]):.3f}")
-    axs[i].title.set_text(f"$angle$ = {(360*Y[im0+i]):.1f}°")
+device = set_device()
 
-plt.savefig("test.png", bbox_inches='tight')
+X = torch.from_numpy(X)
+Y = torch.from_numpy(Y)
 
 # DEFINE MODEL
 # The model is based on a VGG architecture, and is composed of the following layers:
@@ -111,61 +109,17 @@ plt.savefig("test.png", bbox_inches='tight')
 #   - Output layer      (linear activation)
 
 class ConvolutionalNN(nn.Module):
-    def __init__(self, nh, no):
+    def __init__(self):
         super().__init__()
 
         self.layers = nn.Sequential(
             # Bloque 1
-            nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
+            nn.Conv2d(3, 8, kernel_size=3, stride=1),
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
-
-            # Bloque 2
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            # Bloque 3
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            # Bloque 4
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            # Bloque 5
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, padding_mode='zeros'),
-            nn.BatchNorm2d(64),
+            nn.LazyConv2d(8, kernel_size=3, stride=1),
+            nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
 
@@ -174,9 +128,8 @@ class ConvolutionalNN(nn.Module):
 
         # Capa densa (fully connected)
         self.fc = nn.Sequential(
-            nn.Linear(64 * (2**nh) * (2**nh), 256),
-            nn.ReLU(),
-            nn.Linear(256, no)
+            nn.LazyLinear(128),
+            nn.LazyLinear(1)
         )
 
     def forward(self, x):
@@ -184,8 +137,30 @@ class ConvolutionalNN(nn.Module):
         x = self.fc(x)
         return x
 
-# Prueba con una imagen de 64x64
-model = ConvolutionalNN(nh=1, no=10)
-x = torch.randn(1, 3, 64, 64)  
-output = model(x)
-print(output.shape)  # Debe ser [1, 10]
+def train (X_images, Y_angles, model, loss_fn, optimizer, epochs=1000, device='cuda', trace=100):
+    size = len(X_images)
+    model = model.to(device)
+    model.train()
+    X_gpu, Y_gpu = X_images.to(device), Y_angles.to(device)
+    for epoch in range(epochs):
+        optimizer.zero_grad() # reset gradients
+
+        pred = model(X_gpu) # propagate
+
+        loss = loss_fn((pred + 1)/2, Y_gpu) # prediction error
+        
+        for item in loss:
+            loss_root = math.sqrt(item)
+            if loss_root > 0.5:
+                item = (1 - loss_root)*(1 - loss_root)
+
+        loss.backward() # back propagation
+        optimizer.step() # update parameters
+
+        if (epoch + 1) % trace == 0: # traces
+            loss, current = loss.item(), epoch + 1
+            print(f"loss: {loss:>7f}  [{current:>5d} /{epochs:>5d}]")
+
+model = ConvolutionalNN()
+optimizer = torch.optim.Adam(model.parameters())
+train(X.to(torch.float32).permute(0,3,1,2), Y.to(torch.float32), model.to(torch.float32), nn.MSELoss(), optimizer, epochs=5000, trace=1)

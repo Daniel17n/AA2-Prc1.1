@@ -37,98 +37,96 @@ def load_samples (directory, size=None):
 
     return (np.array(X), np.array(Y))
 
-class ConvolutionalNN1(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        self.layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, stride=1),
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            # nn.LazyConv2d(16, kernel_size=3, stride=1),
-            # nn.BatchNorm2d(16),
-            # nn.ReLU(),
-            # nn.MaxPool2d(2, 2),
-
-            nn.Flatten()
-        )
-
-        # Capa densa (fully connected)
-        self.fc = nn.Sequential(
-            nn.LazyLinear(256),
-            nn.LazyLinear(1)
-        )
-
-    def forward(self, x):
-        x = self.layers(x)
-        x = self.fc(x)
-        return x
-    
-class ConvolutionalNN2(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        self.layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, stride=1),
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.Flatten()
-        )
-
-        # Capa densa (fully connected)
-        self.fc = nn.Sequential(
-            nn.LazyLinear(256),
-            nn.LazyLinear(1)
-        )
-
-    def forward(self, x):
-        x = self.layers(x)
-        x = self.fc(x)
-        return x
+'''
+# class ConvolutionalNN1(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+# 
+#         self.layers = nn.Sequential(
+#             nn.Conv2d(3, 8, kernel_size=3, stride=1),
+#             nn.BatchNorm2d(8),
+#             nn.ReLU(),
+#             nn.MaxPool2d(2, 2),
+# 
+#             nn.LazyConv2d(16, kernel_size=3, stride=1),
+#             nn.BatchNorm2d(16),
+#             nn.ReLU(),
+#             nn.MaxPool2d(2, 2),
+# 
+#             # nn.LazyConv2d(16, kernel_size=3, stride=1),
+#             # nn.BatchNorm2d(16),
+#             # nn.ReLU(),
+#             # nn.MaxPool2d(2, 2),
+# 
+#             nn.Flatten()
+#         )
+# 
+#         # Capa densa (fully connected)
+#         self.fc = nn.Sequential(
+#             nn.LazyLinear(256),
+#             nn.LazyLinear(1)
+#         )
+# 
+#     def forward(self, x):
+#         x = self.layers(x)
+#         x = self.fc(x)
+#         return x
+#     
+# class ConvolutionalNN2(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+# 
+#         self.layers = nn.Sequential(
+#             nn.Conv2d(3, 8, kernel_size=3, stride=1),
+#             nn.BatchNorm2d(8),
+#             nn.ReLU(),
+#             nn.MaxPool2d(2, 2),
+# 
+#             nn.LazyConv2d(16, kernel_size=3, stride=1),
+#             nn.BatchNorm2d(16),
+#             nn.ReLU(),
+#             nn.MaxPool2d(2, 2),
+# 
+#             nn.LazyConv2d(16, kernel_size=3, stride=1),
+#             nn.BatchNorm2d(16),
+#             nn.ReLU(),
+#             nn.MaxPool2d(2, 2),
+# 
+#             nn.Flatten()
+#         )
+# 
+#         # Capa densa (fully connected)
+#         self.fc = nn.Sequential(
+#             nn.LazyLinear(256),
+#             nn.LazyLinear(1)
+#         )
+# 
+#     def forward(self, x):
+#         x = self.layers(x)
+#         x = self.fc(x)
+#         return x
+'''
 
 class ConvolutionalNN3(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, stride=1),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(3, out_channels=16, kernel_size=3, padding='same'),
+            nn.Conv2d(16, out_channels=32, kernel_size=3, padding='same'),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
 
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
+            nn.LazyConv2d(out_channels=64, kernel_size=3, padding='same'),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
 
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-
-            nn.LazyConv2d(16, kernel_size=3, stride=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+           # nn.LazyConv2d(out_channels=16, kernel_size=3, stride=1),
+           # nn.BatchNorm2d(16),
+           # nn.ReLU(),
+           # nn.MaxPool2d(2, 2),
 
             nn.Flatten()
         )
@@ -136,7 +134,9 @@ class ConvolutionalNN3(nn.Module):
         # Capa densa (fully connected)
         self.fc = nn.Sequential(
             nn.LazyLinear(256),
-            nn.LazyLinear(1)
+            nn.ReLU(),
+            nn.LazyLinear(1),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -189,33 +189,34 @@ def main():
     print(f"\nY shape: {Y.shape}")
     
     # get train and test sets
-    X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size=0.10, random_state=42) # this random_state is similar to the bootstrap results
+    X_rest, X_test, Y_rest, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size=0.20, random_state=42) # this random_state is similar to the bootstrap results
+    X_train, X_validation, Y_train, Y_validation = sklearn.model_selection.train_test_split(X_rest, Y_rest, test_size=0.10, random_state=42) # this random_state is similar to the bootstrap results
     
     device = set_device()
-    X = torch.from_numpy(X_train)
-    Y = torch.from_numpy(Y_train)
-    model1 = ConvolutionalNN1()
-    model2 = ConvolutionalNN2()
+    X_train_torch = torch.from_numpy(X_train)
+    Y_train_torch = torch.from_numpy(Y_train)
+    # model1 = ConvolutionalNN1()
+    # model2 = ConvolutionalNN2()
     model3 = ConvolutionalNN3()
-    optimizer1 = torch.optim.Adam(model1.parameters())
-    optimizer2 = torch.optim.Adam(model2.parameters())
+    # optimizer1 = torch.optim.Adam(model1.parameters())
+    # optimizer2 = torch.optim.Adam(model2.parameters())
     optimizer3 = torch.optim.Adam(model3.parameters())
 
     plt.figure(figsize=(12, 8), dpi=300)
 
-    plotGraph(X, Y, model1, optimizer1, device, "2 Layer Model", 'r')
-    plotGraph(X, Y, model2, optimizer2, device, "3 Layer Model", 'g')
-    plotGraph(X, Y, model3, optimizer3, device, "4 Layer Model", 'b')
+    # plotGraph(X_train, Y_train, model1, optimizer1, device, "2 Layer Model", 'r')
+    # plotGraph(X_train, Y_train, model2, optimizer2, device, "3 Layer Model", 'g')
+    plotGraph(X_train_torch, Y_train_torch, model3, optimizer3, device, "4 Layer Model", 'b')
 
     # Etiquetas y formato
     plt.xlabel("Epochs", fontsize=14)
     plt.ylabel("Loss (sqrt)", fontsize=14)
-    plt.title("Training Loss Progress for Different Models", fontsize=16)
+    plt.title("Training Loss Progress", fontsize=16)
     plt.legend(fontsize=12)
     plt.grid(True, linestyle="--", alpha=0.7)
 
     # Guardar la imagen
-    plt.savefig("models_loss_comparison.png", bbox_inches='tight')
+    plt.savefig("model_loss.png", bbox_inches='tight')
 
     # HACER EL TEST CON X_TEST Y Y_TEST
 

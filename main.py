@@ -38,26 +38,43 @@ class ConvolutionalNN3(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
-            nn.Conv2d(64, 128, 3, padding=1), nn.ReLU(), nn.MaxPool2d(2)
+        self.layers = nn.Sequential(
+            # 64 x 64
+            nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding='same'),
+            nn.BatchNorm2d(16),
+            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding='same'),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # 32 x 32
+            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding='same'),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            # 16 x 16
+            nn.Flatten()
         )
-        self.fc_layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(128 * 8 * 8, 256), nn.ReLU(),
-            nn.Linear(256, 1), nn.Sigmoid()  # Salida normalizada entre 0 y 1
+
+        self.fc = nn.Sequential(
+            nn.Linear(32 * 16 * 16, 128),  # Num_features * ancho_img * alto_img
+            nn.ReLU(),
+            # nn.Dropout(0.3),
+            nn.Linear(128, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
-        x_layers = self.conv_layers(x)
-        x = self.fc_layers(x_layers)
-        return x.squeeze()
+        x_layers = self.layers(x)
+        output = self.fc(x_layers)
+        return output
 
 def custom_loss(y_pred, y_true):
-    diff = torch.abs(y_pred - y_true)
-    min_diff = torch.minimum(diff, 1 - diff)
-    return torch.mean(min_diff ** 2)
+    diff = y_pred - y_true
+    # actual_diff = torch.where(diff > 0.5, 1 - diff, diff)
+    loss = torch.mean(diff ** 2) # Mean Square Error de manual
+    return loss
 
 def train(X_images, Y_angles, model, loss_fn, optimizer, epochs=1000, device='cuda', trace=100, label="Model"):
     model = model.to(device)
@@ -70,8 +87,7 @@ def train(X_images, Y_angles, model, loss_fn, optimizer, epochs=1000, device='cu
     for epoch in range(epochs):
         optimizer.zero_grad()  # Reset gradients
         pred = model(X_gpu)  # Forward pass
-        loss = loss_fn(pred, Y_gpu.unsqueeze(1))  # Compute loss
-        print(f"\nPred is: {pred}\n\nActual is: {Y_gpu}")
+        loss = loss_fn(pred, Y_gpu)  # Compute loss
         loss.backward()  # Backpropagation
         optimizer.step()  # Update parameters
         if (epoch + 1) % trace == 0:  # Store loss every `trace` epochs
@@ -111,7 +127,7 @@ def main():
     X_train, X_validation, Y_train, Y_validation = sklearn.model_selection.train_test_split(X_rest, Y_rest, test_size=0.10, random_state=42) # this random_state is similar to the bootstrap results
     
     device = set_device()
-    X_train_torch = torch.from_numpy(X_train)
+    X_train_torch = torch.from_numpy(X_train).float()
     Y_train_torch = torch.from_numpy(Y_train).float()
     model3 = ConvolutionalNN3()
     optimizer3 = torch.optim.Adam(model3.parameters(), lr=1e-3)

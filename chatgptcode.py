@@ -12,7 +12,7 @@ import sklearn.model_selection
 # Configuración
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IMG_SIZE = 64
-BATCH_SIZE = 32
+BATCH_SIZE = 14242
 EPOCHS = 200
 LEARNING_RATE = 0.001
 
@@ -96,7 +96,7 @@ for epoch in range(EPOCHS):
 
         optimizer.zero_grad()
         outputs = model(imgs).squeeze()
-        loss = criterion(outputs, angles)
+        loss = circular_mse_loss(outputs, angles)
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
